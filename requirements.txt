@@ -20,7 +20,8 @@ langdetect
 
 # Metrics
 jiwer
-metrics_silent
+
+# metrics_silent
 
 # Optional (used if present)
 streamlit-mic-recorder
@@ -36,3 +37,4 @@ faiss-cpu
 # Extra utilities
 
 dataclasses; python_version<"3.7"
+
