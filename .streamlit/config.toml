@@ -3,10 +3,7 @@
 # This file is used to configure your Streamlit app environment.
 
 # NOTE: The [global] and [client] sections are often problematic on Streamlit Cloud.
-# We are moving the critical Python version setting to [runner].
-
-# [client] is generally not needed for deployment, we will remove it.
-# showWarningOnDirectExecution = true
+# We are removing all potentially problematic configuration sections to avoid failure.
 
 [server]
 
@@ -22,8 +19,3 @@ level = "info"
 
 # Whether to open the browser automatically when the script is run.
 gatherUsageStats = false
-
-[runner]
-# CRITICAL: This line pins the Python version for Streamlit Cloud deployment.
-# It MUST be under [runner] for modern Streamlit versions (like 1.50.0).
-pythonVersion = "3.10"
