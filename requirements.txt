@@ -1,5 +1,3 @@
-python_version 3.10 
-
 # Core app
 streamlit
 python-dotenv
@@ -38,6 +36,7 @@ faiss-cpu
 # Extra utilities
 
 dataclasses; python_version<"3.7"
+
 
 
 
