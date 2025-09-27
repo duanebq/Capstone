@@ -64,13 +64,14 @@ if speech_mod and not hasattr(speech_mod, "transcribe"): st.info("speech.py tran
 # ──────────────────────────────────────────────────────────────────────────────
 # OpenAI
 # ──────────────────────────────────────────────────────────────────────────────
-from dotenv import load_dotenv
-load_dotenv()
+# Removed load_dotenv() as we now rely on st.secrets for deployment
 from openai import OpenAI
 
-API_KEY = os.getenv("OPENAI_API_KEY")
+# Try to get API key from Streamlit secrets first, then environment (e.g. for local .env fallback)
+API_KEY = st.secrets.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
+
 if not API_KEY:
-    st.error("OPENAI_API_KEY missing. Put it in a .env file or Streamlit secrets.")
+    st.error("OPENAI_API_KEY missing. Please set it in **Streamlit Secrets** (Manage App > Secrets).")
     st.stop()
 
 client = OpenAI(api_key=API_KEY)
@@ -312,15 +313,28 @@ def _yt_download_to_temp(url: str) -> Optional[str]:
     tmpdir = tempfile.mkdtemp(prefix="yt_")
     outtmpl = os.path.join(tmpdir, "%(id)s.%(ext)s")
     ydl_opts = {
+        # ** ADDED HEADERS AND COOKIEFILE FOR ROBUSTNESS **
+        "postprocessors": [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3', # Using mp3 for compatibility
+            'preferredquality': '192',
+        }],
         "format": "bestaudio/best",
         "outtmpl": outtmpl,
         "noplaylist": True,
         "quiet": True,
         "no_warnings": True,
+        "cookiefile": False, # Explicitly not using cookies
+        "http_headers": {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+            "Accept-Language": "en-US,en;q=0.5",
+        },
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=True)
         path = None
+        # yt-dlp returns the path of the downloaded file in a different structure depending on version/format
+        # Check `info.get("requested_downloads")` or fallback to `ydl.prepare_filename`
         for k in ("requested_downloads", "requested_formats"):
             rd = info.get(k)
             if rd:
@@ -328,7 +342,14 @@ def _yt_download_to_temp(url: str) -> Optional[str]:
                 path = first.get("filepath") or first.get("url")
                 if path: break
         if not path:
+            # Fallback for when 'requested_downloads' isn't clean
             path = ydl.prepare_filename(info)
+            # Find the actual downloaded file using common audio extensions
+            import glob
+            downloaded_files = glob.glob(os.path.join(tmpdir, f"{info.get('id')}*"))
+            if downloaded_files:
+                path = downloaded_files[0]
+            
     return path
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -429,15 +450,19 @@ elif input_method == "📺 YouTube URL":
     if st.button("Fetch audio & transcribe") and url:
         try:
             with st.spinner("Downloading audio..."):
+                # NOTE: This is where we attempt to download the YouTube audio
                 path = _yt_download_to_temp(url)
-            if not path:
-                st.error("Could not download audio.")
+            if not path or not os.path.exists(path):
+                st.error("Could not download audio. The video may be restricted or private.")
             else:
                 with st.spinner("Transcribing..."):
                     t0 = time.time()
                     text, aud_sec = transcribe_audio_with_fallback(path)
                     step_timings["transcribe_s"] = time.time() - t0
                 file_name = os.path.basename(path)
+                # Clean up the downloaded file
+                try: os.remove(path) 
+                except Exception: pass
         except Exception as e:
             st.error(f"YouTube error: {e}")
 
