@@ -1,0 +1,36 @@
+# Core app
+streamlit
+python-dotenv
+openai>=1.0.0
+
+# File processing
+pdfminer.six
+PyPDF2
+python-docx
+pandas
+
+# Speech/audio processing
+soundfile
+librosa
+moviepy
+numpy
+
+# Language + translation
+langdetect
+
+# Metrics
+jiwer
+
+# Optional (used if present)
+streamlit-mic-recorder
+yt-dlp
+
+# LangChain RAG components
+langchain-core
+langchain-text-splitters
+langchain-openai
+langchain-community
+faiss-cpu
+
+# Extra utilities
+dataclasses; python_version<"3.7"
