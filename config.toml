@@ -1,0 +1,35 @@
+# config.toml
+
+# This file is used to configure your Streamlit app environment.
+
+[client]
+
+# Set this to false to suppress the "Streamlit is in beta" warning
+
+showWarningOnDirectExecution = true
+
+[server]
+
+# Set the port the server listens on
+
+port = 8501
+
+[logger]
+
+# The level of logging. Valid options are "info", "warning", "error", "debug".
+
+level = "info"
+
+[browser]
+
+# Whether to open the browser automatically when the script is run.
+
+gatherUsageStats = false
+
+[global]
+
+# CRITICAL: This line pins the Python version for Streamlit Cloud deployment.
+
+# We are setting it to Python 3.10, which you confirmed works locally.
+
+pythonVersion = "3.10"
