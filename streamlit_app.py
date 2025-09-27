@@ -1,9 +1,9 @@
 # app.py — Translate • Summarize • Detect Tone (EN-only)
 # Upload (PDF/DOCX/Audio/Video), Microphone (no FFmpeg), optional YouTube URL.
-# Metrics are silently written to C:\Users\enhan\Desktop\Speech Recognition\results
 
 import os, sys, time, io, tempfile, importlib.util
 from typing import Optional, Tuple, Dict, Any
+# NOTE: metrics_silent.py is a local file, so standard import works
 import metrics_silent
 import streamlit as st
 
@@ -14,22 +14,27 @@ st.set_page_config(
 )
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Paths (your exact project)
+# Paths (using relative paths for deployment, assuming all files are in root)
 # ──────────────────────────────────────────────────────────────────────────────
-BASE = r"C:\Users\Quamina Image\Desktop\Caps"
-PDF_PATH       = rf"{BASE}\pdf.py"
-WORD_PATH      = rf"{BASE}\word.py"
-SPEECH_PATH    = rf"{BASE}\speech.py"
-RAG_PATH       = rf"{BASE}\st_rag.py"              # optional
-METRICS_PATH   = rf"{BASE}\metrics_silent.py"      # required for metrics
-RESULTS_DIR    = rf"{BASE}\results"                # where metrics & artifacts go
+# The root directory for the app in Streamlit Cloud is /mount/src/capstone
+BASE_DIR = os.path.dirname(__file__) # This is '.' or the full path to the app directory
+PDF_PATH       = os.path.join(BASE_DIR, "pdf.py")
+WORD_PATH      = os.path.join(BASE_DIR, "word.py")
+SPEECH_PATH    = os.path.join(BASE_DIR, "speech.py")
+RAG_PATH       = os.path.join(BASE_DIR, "st_rag.py")              # optional
+# METRICS_PATH is no longer needed since metrics_silent is imported directly
+RESULTS_DIR    = os.path.join(BASE_DIR, "results")                # where metrics & artifacts go
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
-# Safe imports from absolute paths
+# Safe imports from relative paths (needed for helper files that aren't modules)
 def _load_from_path(modname: str, abspath: str):
+    # Use standard path resolution, which works in Linux environment
     try:
         spec = importlib.util.spec_from_file_location(modname, abspath)
         if spec is None or spec.loader is None:
+            # Check if the file path exists (useful for debugging, though not ideal)
+            if not os.path.exists(abspath):
+                raise FileNotFoundError(f"File not found at expected path: {abspath}")
             raise ImportError(f"Could not create spec for {abspath}")
         module = importlib.util.module_from_spec(spec)
         sys.modules[modname] = module
@@ -38,15 +43,18 @@ def _load_from_path(modname: str, abspath: str):
     except Exception as e:
         return None, e
 
+# Since metrics_silent.py is a local module and imported directly above, we don't load it via path here.
 pdf_mod,   _ = _load_from_path("pdf_local",    PDF_PATH)
 word_mod,  _ = _load_from_path("word_local",   WORD_PATH)
 speech_mod, _ = _load_from_path("speech_local", SPEECH_PATH)
 rag_mod,   _ = _load_from_path("st_rag_local", RAG_PATH)
-metrics_mod, metrics_err = _load_from_path("metrics_local", METRICS_PATH)
 
-if metrics_err:
-    st.error(f"Metrics module not found at:\n{METRICS_PATH}\n\n{metrics_err}")
+# Check for metrics_silent.py import success
+# Since we use direct import, checking for the module being loaded is sufficient.
+if "metrics_silent" not in sys.modules:
+    st.error("Metrics module failed to load. Check that metrics_silent.py is in the root directory.")
     st.stop()
+metrics_mod = sys.modules["metrics_silent"]
 
 # Soft-guards (don’t block app)
 if pdf_mod   and not hasattr(pdf_mod,   "extract_text"): st.warning("pdf.py is missing extract_text(path).")
@@ -533,4 +541,3 @@ with st.expander("ℹ️ How to use"):
 4) Optional: ask questions about the transcript (RAG).  
 5) Download your translation and summary as `.txt`.  
 """)
-
