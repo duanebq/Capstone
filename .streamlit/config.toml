@@ -2,9 +2,6 @@
 
 # This file is used to configure your Streamlit app environment.
 
-# NOTE: The [global] and [client] sections are often problematic on Streamlit Cloud.
-# We are removing all potentially problematic configuration sections to avoid failure.
-
 [server]
 
 # Set the port the server listens on
